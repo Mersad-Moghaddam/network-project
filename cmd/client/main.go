@@ -21,13 +21,13 @@ func main() {
 
 	// Create renderer
 	renderer := ui.NewRenderer(600)
-	
+
 	// Create input handler
 	inputHandler := ui.NewInputHandler(renderer)
-	
+
 	// Create network client
 	client := net.NewClient(*serverAddr, *playerName)
-	
+
 	// Set up callbacks
 	client.SetCallbacks(
 		// onStateUpdate
@@ -47,29 +47,30 @@ func main() {
 		func(playerID int, playerName string) {
 			renderer.SetPlayerID(playerID)
 			renderer.SetShowMenu(false)
+			// Don't set gameStarted yet - wait for start message
 		},
 	)
-	
+
 	// Connect to server
 	if err := client.Connect(); err != nil {
 		log.Fatalf("Failed to connect to server: %v", err)
 	}
-	
+
 	// Set client in input handler
 	inputHandler.SetClient(client)
-	
+
 	// Set up Ebiten game
 	ebiten.SetWindowSize(600, 600)
 	ebiten.SetWindowTitle("Network Pong Battle - Client")
 	ebiten.SetWindowResizable(true)
-	
+
 	// Create game struct that implements ebiten.Game
 	game := &Game{
 		renderer:     renderer,
 		inputHandler: inputHandler,
 		client:       client,
 	}
-	
+
 	// Run the game
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatalf("Game error: %v", err)

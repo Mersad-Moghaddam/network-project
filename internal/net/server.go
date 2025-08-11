@@ -133,7 +133,9 @@ func (s *Server) handleClient(conn net.Conn) {
 
 	// Start game if we have 2 players
 	s.mu.Lock()
+	log.Printf("Client %d connected. Total clients: %d, gameStarted: %v", playerID, len(s.clients), s.gameStarted)
 	if len(s.clients) == 2 && !s.gameStarted {
+		log.Println("Starting game with 2 players...")
 		s.startGame()
 	}
 	s.mu.Unlock()
@@ -178,11 +180,13 @@ func (s *Server) handleMessage(playerID int, data []byte) {
 
 // startGame starts the game
 func (s *Server) startGame() {
+	log.Println("startGame() called - setting gameStarted = true")
 	s.gameStarted = true
 	s.game.Start()
 
 	// Send start message to all clients
 	startMsg := CreateStartMessage(s.game.GetState().Settings)
+	log.Printf("Broadcasting start message to %d clients", len(s.clients))
 	s.broadcastMessage(startMsg)
 
 	log.Println("Game started!")
