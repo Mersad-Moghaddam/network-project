@@ -122,10 +122,7 @@ func (s *Server) handleClient(conn net.Conn) {
 	s.clients[playerID] = client
 
 	// Check if we have 2 players and can start the game
-	if len(s.clients) == 2 && !s.gameStarted {
-		log.Printf("Two players connected, starting game...")
-		go s.startGame() // Start game in a goroutine to avoid deadlock
-	}
+	shouldStartGame := len(s.clients) == 2 && !s.gameStarted
 	s.mu.Unlock()
 
 	log.Printf("Client %d connected from %s", playerID, conn.RemoteAddr())
@@ -135,6 +132,12 @@ func (s *Server) handleClient(conn net.Conn) {
 	if data, err := EncodeMessage(joinMsg); err == nil {
 		conn.Write(data)
 		conn.Write([]byte("\n"))
+	}
+
+	// Start game if we have both players
+	if shouldStartGame {
+		log.Printf("Two players connected, starting game...")
+		s.startGame()
 	}
 
 	// Handle client messages
@@ -178,18 +181,19 @@ func (s *Server) handleMessage(playerID int, data []byte) {
 // startGame starts the game
 func (s *Server) startGame() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if s.gameStarted {
+		s.mu.Unlock()
 		return // Game already started
 	}
 
 	log.Println("Starting game with 2 players...")
 	s.gameStarted = true
 	s.game.Start()
+	s.mu.Unlock()
 
 	// Send start message to all clients
 	startMsg := CreateStartMessage(s.game.GetState().Settings)
+	log.Printf("Broadcasting start message to %d clients", len(s.clients))
 	s.broadcastMessage(startMsg)
 
 	log.Println("Game started!")

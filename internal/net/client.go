@@ -19,13 +19,13 @@ type GameClient struct {
 	playerName string
 	connected  bool
 	mu         sync.RWMutex
-	
+
 	// Callbacks for handling server messages
 	onStateUpdate func(game.GameState)
 	onGameStart   func(game.GameSettings)
 	onGameEnd     func(int, game.Scores, int64)
 	onJoin        func(int, string)
-	
+
 	// Input channel
 	inputChan chan *InputMessage
 	stopChan  chan bool
@@ -137,7 +137,7 @@ func (c *GameClient) processMessage(data []byte) {
 	var baseMsg struct {
 		Type MessageType `json:"type"`
 	}
-	
+
 	if err := json.Unmarshal(data, &baseMsg); err != nil {
 		log.Printf("Error parsing message type: %v", err)
 		return
@@ -162,6 +162,7 @@ func (c *GameClient) processMessage(data []byte) {
 			log.Printf("Error decoding start message: %v", err)
 			return
 		}
+		log.Printf("Received game start message")
 		if c.onGameStart != nil {
 			c.onGameStart(msg.Settings)
 		}
@@ -173,7 +174,7 @@ func (c *GameClient) processMessage(data []byte) {
 			log.Printf("Error decoding state message: %v", err)
 			return
 		}
-		
+
 		// Convert to game state
 		state := game.GameState{
 			Balls:    msg.Balls,
@@ -181,7 +182,7 @@ func (c *GameClient) processMessage(data []byte) {
 			GameOver: msg.GameOver,
 			Winner:   msg.Winner,
 		}
-		
+
 		if c.onStateUpdate != nil {
 			c.onStateUpdate(state)
 		}
@@ -221,7 +222,7 @@ func (c *GameClient) inputHandler() {
 						continue
 					}
 					data = append(data, '\n')
-					
+
 					c.mu.Lock()
 					if c.conn != nil {
 						c.conn.Write(data)
