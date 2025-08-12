@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"network-pong-battle/internal/net"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -78,20 +80,26 @@ func (ih *InputHandler) handleMenuInput() {
 
 // handleGameInput handles input during gameplay
 func (ih *InputHandler) handleGameInput() {
+	var moved bool
+
 	// Paddle 1 movement (vertical - left side)
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
 		ih.paddle1Y -= 5
+		moved = true
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyS) {
 		ih.paddle1Y += 5
+		moved = true
 	}
 
 	// Paddle 2 movement (horizontal - top side)
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
 		ih.paddle2X -= 5
+		moved = true
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyD) {
 		ih.paddle2X += 5
+		moved = true
 	}
 
 	// Constrain paddle positions
@@ -108,10 +116,11 @@ func (ih *InputHandler) handleGameInput() {
 		ih.paddle2X = 500
 	}
 
-	// Send input to server if connected
-	if ih.client != nil {
-		// This will be implemented when we connect the client
-		// ih.client.SendInput(ih.paddle1Y, ih.paddle2X)
+	// Send input to server if connected and movement occurred
+	if moved && ih.client != nil {
+		if client, ok := ih.client.(*net.GameClient); ok {
+			client.SendInput(ih.paddle1Y, ih.paddle2X)
+		}
 	}
 
 	// Return to menu

@@ -19,14 +19,15 @@ func main() {
 	log.Println("Starting Network Pong Battle Client...")
 	log.Printf("Connecting to server: %s", *serverAddr)
 
+	// Create network client
+	client := net.NewClient(*serverAddr, *playerName)
+
 	// Create renderer
 	renderer := ui.NewRenderer(600)
 
-	// Create input handler
+	// Create input handler and set client immediately
 	inputHandler := ui.NewInputHandler(renderer)
-
-	// Create network client
-	client := net.NewClient(*serverAddr, *playerName)
+	inputHandler.SetClient(client) // Set client before any game logic starts
 
 	// Set up callbacks
 	client.SetCallbacks(
@@ -36,6 +37,7 @@ func main() {
 		},
 		// onGameStart
 		func(settings game.GameSettings) {
+			log.Println("Game started - You can now move your paddles!")
 			renderer.SetGameStarted(true)
 			renderer.SetShowMenu(false)
 		},
