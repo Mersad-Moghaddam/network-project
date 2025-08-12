@@ -13,22 +13,22 @@ import (
 
 // Renderer handles the game graphics rendering
 type Renderer struct {
-	gameState    game.GameState
-	fieldSize    int
-	scale        float64
-	playerID     int
-	gameStarted  bool
-	gameOver     bool
-	winner       int
-	
+	gameState   *game.GameState
+	fieldSize   int
+	scale       float64
+	playerID    int
+	gameStarted bool
+	gameOver    bool
+	winner      int
+
 	// UI state
-	showMenu     bool
-	menuOption   int
-	menuOptions  []string
-	
+	showMenu    bool
+	menuOption  int
+	menuOptions []string
+
 	// Assets
-	font         font.Face
-	colors       map[string]color.Color
+	font   font.Face
+	colors map[string]color.Color
 }
 
 // NewRenderer creates a new game renderer
@@ -77,8 +77,10 @@ func (r *Renderer) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 // SetGameState updates the game state for rendering
-func (r *Renderer) SetGameState(state game.GameState) {
-	r.gameState = state
+func (r *Renderer) SetGameState(state *game.GameState) {
+	if state != nil {
+		r.gameState = state
+	}
 }
 
 // SetPlayerID sets the current player ID
@@ -118,14 +120,14 @@ func (r *Renderer) GetMenuOption() int {
 func (r *Renderer) drawMenu(screen *ebiten.Image) {
 	// Draw background
 	screen.Fill(r.colors["background"])
-	
+
 	// Draw title
 	title := "Network Pong Battle"
 	titleBounds := text.BoundString(r.font, title)
 	titleX := (r.fieldSize - titleBounds.Dx()) / 2
 	titleY := r.fieldSize / 3
 	text.Draw(screen, title, r.font, titleX, titleY, r.colors["text"])
-	
+
 	// Draw menu options
 	optionY := r.fieldSize / 2
 	for i, option := range r.menuOptions {
@@ -133,13 +135,13 @@ func (r *Renderer) drawMenu(screen *ebiten.Image) {
 		if i == r.menuOption {
 			color = r.colors["menu"]
 		}
-		
+
 		bounds := text.BoundString(r.font, option)
 		x := (r.fieldSize - bounds.Dx()) / 2
 		y := optionY + i*30
 		text.Draw(screen, option, r.font, x, y, color)
 	}
-	
+
 	// Draw instructions
 	instructions := "Use ↑↓ to navigate, Enter to select"
 	instBounds := text.BoundString(r.font, instructions)
@@ -152,27 +154,30 @@ func (r *Renderer) drawMenu(screen *ebiten.Image) {
 func (r *Renderer) drawGame(screen *ebiten.Image) {
 	// Draw background
 	screen.Fill(r.colors["background"])
-	
+
 	// Draw field border
 	fieldRect := ebiten.NewImage(r.fieldSize, r.fieldSize)
 	fieldRect.Fill(r.colors["field"])
-	
+
 	op := &ebiten.DrawImageOptions{}
 	screen.DrawImage(fieldRect, op)
-	
+
 	// Draw paddles
+	if r.gameState == nil {
+		return
+	}
 	for _, paddle := range r.gameState.Paddles {
 		r.drawPaddle(screen, paddle)
 	}
-	
+
 	// Draw balls
 	for _, ball := range r.gameState.Balls {
 		r.drawBall(screen, ball)
 	}
-	
+
 	// Draw scores
 	r.drawScores(screen)
-	
+
 	// Draw player info
 	r.drawPlayerInfo(screen)
 }
@@ -180,7 +185,7 @@ func (r *Renderer) drawGame(screen *ebiten.Image) {
 // drawPaddle draws a paddle
 func (r *Renderer) drawPaddle(screen *ebiten.Image, paddle game.Paddle) {
 	paddleImg := ebiten.NewImage(int(paddle.Width), int(paddle.Height))
-	
+
 	// Choose color based on player
 	var paddleColor color.Color
 	if paddle.PlayerID == 1 {
@@ -188,9 +193,9 @@ func (r *Renderer) drawPaddle(screen *ebiten.Image, paddle game.Paddle) {
 	} else {
 		paddleColor = r.colors["paddle2"]
 	}
-	
+
 	paddleImg.Fill(paddleColor)
-	
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(paddle.X, paddle.Y)
 	screen.DrawImage(paddleImg, op)
@@ -200,14 +205,17 @@ func (r *Renderer) drawPaddle(screen *ebiten.Image, paddle game.Paddle) {
 func (r *Renderer) drawBall(screen *ebiten.Image, ball game.Ball) {
 	ballImg := ebiten.NewImage(int(ball.Radius*2), int(ball.Radius*2))
 	ballImg.Fill(r.colors["ball"])
-	
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(ball.X-ball.Radius, ball.Y-ball.Radius)
 	screen.DrawImage(ballImg, op)
 }
 
-// drawScores draws the score display
+// drawScores draws the scores on the screen
 func (r *Renderer) drawScores(screen *ebiten.Image) {
+	if r.gameState == nil {
+		return
+	}
 	scoreText := fmt.Sprintf("P1: %d  P2: %d", r.gameState.Scores.Player1, r.gameState.Scores.Player2)
 	text.Draw(screen, scoreText, r.font, 10, 30, r.colors["text"])
 }
@@ -221,31 +229,30 @@ func (r *Renderer) drawPlayerInfo(screen *ebiten.Image) {
 // drawWaiting draws the waiting screen
 func (r *Renderer) drawWaiting(screen *ebiten.Image) {
 	screen.Fill(r.colors["background"])
-	
+
 	waitingText := "Waiting for players..."
 	waitingBounds := text.BoundString(r.font, waitingText)
 	waitingX := (r.fieldSize - waitingBounds.Dx()) / 2
 	waitingY := r.fieldSize / 2
 	text.Draw(screen, waitingText, r.font, waitingX, waitingY, r.colors["text"])
-	
+
 	playerText := fmt.Sprintf("Connected as Player %d", r.playerID)
 	playerBounds := text.BoundString(r.font, playerText)
 	playerX := (r.fieldSize - playerBounds.Dx()) / 2
-	playerY := waitingY + 30
+	playerY := r.fieldSize/2 + 20
 	text.Draw(screen, playerText, r.font, playerX, playerY, r.colors["text"])
 }
 
-// drawGameOver draws the game over screen
 func (r *Renderer) drawGameOver(screen *ebiten.Image) {
 	screen.Fill(r.colors["background"])
-	
+
 	// Draw game over text
 	gameOverText := "Game Over!"
 	gameOverBounds := text.BoundString(r.font, gameOverText)
 	gameOverX := (r.fieldSize - gameOverBounds.Dx()) / 2
 	gameOverY := r.fieldSize / 3
 	text.Draw(screen, gameOverText, r.font, gameOverX, gameOverY, r.colors["text"])
-	
+
 	// Draw winner
 	var winnerText string
 	if r.winner == 0 {
@@ -257,14 +264,19 @@ func (r *Renderer) drawGameOver(screen *ebiten.Image) {
 	winnerX := (r.fieldSize - winnerBounds.Dx()) / 2
 	winnerY := gameOverY + 40
 	text.Draw(screen, winnerText, r.font, winnerX, winnerY, r.colors["score"])
-	
+
 	// Draw final scores
-	finalScoreText := fmt.Sprintf("Final Score - P1: %d, P2: %d", r.gameState.Scores.Player1, r.gameState.Scores.Player2)
+	finalScoreText := ""
+	if r.gameState != nil {
+		finalScoreText = fmt.Sprintf("Final Score - P1: %d, P2: %d", r.gameState.Scores.Player1, r.gameState.Scores.Player2)
+	} else {
+		finalScoreText = "Final Score - P1: ?, P2: ?"
+	}
 	scoreBounds := text.BoundString(r.font, finalScoreText)
 	scoreX := (r.fieldSize - scoreBounds.Dx()) / 2
 	scoreY := winnerY + 40
 	text.Draw(screen, finalScoreText, r.font, scoreX, scoreY, r.colors["text"])
-	
+
 	// Draw return to menu instruction
 	menuText := "Press ESC to return to menu"
 	menuBounds := text.BoundString(r.font, menuText)

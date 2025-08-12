@@ -33,7 +33,8 @@ func main() {
 	client.SetCallbacks(
 		// onStateUpdate
 		func(state game.GameState) {
-			renderer.SetGameState(state)
+
+			renderer.SetGameState(&state)
 		},
 		// onGameStart
 		func(settings game.GameSettings) {

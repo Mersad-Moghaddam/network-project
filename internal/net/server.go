@@ -217,26 +217,24 @@ func (s *Server) gameLoop() {
 	defer ticker.Stop()
 
 	for s.running {
-		select {
-		case <-ticker.C:
-			if s.gameStarted {
-				s.game.Update()
+		<-ticker.C
+		if s.gameStarted {
+			s.game.Update()
 
-				// Broadcast game state to all clients
-				stateMsg := CreateStateMessage(s.game.GetState())
-				s.broadcastMessage(stateMsg)
+			// Broadcast game state to all clients
+			stateMsg := CreateStateMessage(s.game.GetState())
+			s.broadcastMessage(stateMsg)
 
-				// Check if game ended
-				if s.game.IsGameOver() {
-					s.gameStarted = false
-					endMsg := CreateEndMessage(
-						s.game.GetWinner(),
-						s.game.GetScore(),
-						int64(s.game.GetGameTime().Milliseconds()),
-					)
-					s.broadcastMessage(endMsg)
-					log.Printf("Game ended! Winner: Player %d", s.game.GetWinner())
-				}
+			// Check if game ended
+			if s.game.IsGameOver() {
+				s.gameStarted = false
+				endMsg := CreateEndMessage(
+					s.game.GetWinner(),
+					s.game.GetScore(),
+					int64(s.game.GetGameTime().Milliseconds()),
+				)
+				s.broadcastMessage(endMsg)
+				log.Printf("Game ended! Winner: Player %d", s.game.GetWinner())
 			}
 		}
 	}
